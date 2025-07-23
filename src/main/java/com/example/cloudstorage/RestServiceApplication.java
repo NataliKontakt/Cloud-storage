@@ -1,4 +1,4 @@
-package com.example.restService;
+package com.example.cloudstorage;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

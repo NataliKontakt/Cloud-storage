@@ -1,4 +1,4 @@
-package com.example.restService;
+package com.example.cloudstorage;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
