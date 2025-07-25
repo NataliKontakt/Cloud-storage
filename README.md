@@ -11,7 +11,7 @@
 ```text
                +--------------------------+
                |        FRONTEND          |
-               |  Vue.js (порт 8081)      |
+               |  Vue.js (порт 8080)      |
                +------------+-------------+
                             |
         HTTP (REST, JSON, auth-token в header)
