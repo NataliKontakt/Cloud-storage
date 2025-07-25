@@ -12,6 +12,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Найти пользователя по email (например, для проверки уникальности)
     Optional<User> findByEmail(String email);
 
-    // Можно даже сделать поиск и по логину, и по email (для авторизации)
+    // Поиск либо по логину, либо по email (для авторизации)
     Optional<User> findByUsernameOrEmail(String username, String email);
+
+    // Поиск по токену (для logout и фильтра авторизации)
+    Optional<User> findByToken(String token);
 }
