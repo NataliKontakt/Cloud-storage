@@ -16,29 +16,29 @@ public class AuthService {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Логин: проверка пользователя, генерация токена
-     */
-    public String login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getLogin())
+    public User login(LoginRequest request) {
+        User user = userRepository
+                .findByUsernameOrEmail(request.getLogin(), request.getLogin())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!user.getPassword().equals(request.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
 
-        // Генерируем токен (UUID)
+        // Генерация токена
         String token = UUID.randomUUID().toString();
         user.setToken(token);
         userRepository.save(user);
 
-        return token;
+        return user; // возвращаем пользователя с токеном
     }
 
-    /**
-     * Логаут: сброс токена
-     */
     public void logout(String token) {
+        // Убираем "Bearer " из заголовка, если он там есть
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
         User user = userRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid token"));
         user.setToken(null);
