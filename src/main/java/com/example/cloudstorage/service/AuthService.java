@@ -19,7 +19,9 @@ public class AuthService {
 
     public User login(LoginRequest request) {
         User user = userRepository
+
                 .findByEmail(request.getLogin())
+
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!user.getPassword().equals(request.getPassword())) {
@@ -36,7 +38,7 @@ public class AuthService {
 
     public void logout(String token) {
         // Убираем "Bearer " из заголовка, если он там есть
-        if (token.startsWith("Bearer ")) {
+        if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
 
