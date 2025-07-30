@@ -1,6 +1,7 @@
 package com.example.cloudstorage.service;
 
 import com.example.cloudstorage.dto.LoginRequest;
+import com.example.cloudstorage.exception.UnauthorizedException;
 import com.example.cloudstorage.model.User;
 import com.example.cloudstorage.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,9 @@ public class AuthService {
 
     public User login(LoginRequest request) {
         User user = userRepository
-                .findByUsernameOrEmail(request.getEmail(), request.getEmail())
+
+                .findByEmail(request.getLogin())
+
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!user.getPassword().equals(request.getPassword())) {
@@ -40,8 +43,16 @@ public class AuthService {
         }
 
         User user = userRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid token"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid token"));
         user.setToken(null);
         userRepository.save(user);
+    }
+
+    public User getUserByToken(String token) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        return userRepository.findByToken(token)
+                .orElseThrow(() -> new UnauthorizedException("Invalid token"));
     }
 }
