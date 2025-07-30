@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping
-@CrossOrigin(origins = "http://localhost:8081")
+@RequestMapping("/cloud")
+@CrossOrigin(origins = "http://localhost:8081", allowCredentials = "true")
 public class AuthController {
 
     private final AuthService authService;
@@ -23,16 +23,15 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
         User user = authService.login(request);
         return ResponseEntity.ok(Map.of(
-                "token", user.getToken(),
-                "email", user.getEmail(),
-                "username", user.getUsername()
+                "status", "ok",
+                "auth-token", user.getToken() // по спецификации
         ));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<Void> logout(@RequestHeader("auth-token") String token) {
         authService.logout(token);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }
 

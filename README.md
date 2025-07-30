@@ -11,14 +11,14 @@
 ```text
                +--------------------------+
                |        FRONTEND          |
-               |  Vue.js (порт 8080)      |
+               |  Vue.js (порт 8081)      |
                +------------+-------------+
                             |
         HTTP (REST, JSON, auth-token в header)
                             |
                +------------v-------------+
                |        BACKEND           |
-               |  Spring Boot (порт 8081) |
+               |  Spring Boot (порт 8080) |
                |                          |
                |  Контроллеры:            |
                |   - /login, /logout      |
