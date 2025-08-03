@@ -1,5 +1,6 @@
 package com.example.cloudstorage;
 
+import com.example.cloudstorage.model.Role;
 import com.example.cloudstorage.model.User;
 import com.example.cloudstorage.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -18,6 +19,7 @@ public class TestUserInitializer {
                 user.setUsername("testuser");
                 user.setEmail("test@example.com");
                 user.setPassword(passwordEncoder.encode("test123"));
+                user.setRole(Role.ROLE_USER);
                 userRepository.save(user);
                 System.out.println("Создан тестовый пользователь: test@example.com / test123");
             }
