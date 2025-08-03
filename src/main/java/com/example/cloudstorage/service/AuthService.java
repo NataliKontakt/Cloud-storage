@@ -20,7 +20,7 @@ public class AuthService {
     public User login(LoginRequest request) {
         User user = userRepository
 
-                .findByEmail(request.getEmail())
+                .findByEmail(request.getLogin())
 
                 .orElseThrow(() -> new RuntimeException("User not found"));
 

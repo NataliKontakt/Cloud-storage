@@ -15,7 +15,7 @@ public class TestUserInitializer {
         return args -> {
             if (userRepository.findByEmail("test@example.com").isEmpty()) {
                 User user = new User();
-                user.setUsername("testuser"); // <-- ОБЯЗАТЕЛЬНО
+                user.setUsername("testuser");
                 user.setEmail("test@example.com");
                 user.setPassword(passwordEncoder.encode("test123"));
                 userRepository.save(user);
