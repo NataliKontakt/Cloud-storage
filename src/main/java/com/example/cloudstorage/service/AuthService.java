@@ -4,6 +4,7 @@ import com.example.cloudstorage.dto.LoginRequest;
 import com.example.cloudstorage.exception.UnauthorizedException;
 import com.example.cloudstorage.model.User;
 import com.example.cloudstorage.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -12,9 +13,11 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public User login(LoginRequest request) {
@@ -24,7 +27,7 @@ public class AuthService {
 
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!user.getPassword().equals(request.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
 
