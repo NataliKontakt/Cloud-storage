@@ -2,6 +2,9 @@ package com.example.cloudstorage.controller;
 
 import com.example.cloudstorage.dto.CloudFileDto;
 import com.example.cloudstorage.dto.ErrorResponse;
+import com.example.cloudstorage.dto.RenameFileRequest;
+import com.example.cloudstorage.mapper.CloudFileMapper;
+import com.example.cloudstorage.model.CloudFile;
 import com.example.cloudstorage.service.AuthService;
 import com.example.cloudstorage.service.CloudFileService;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +20,14 @@ public class FileController {
 
     private final CloudFileService cloudFileService;
     private final AuthService authService;
+    private final CloudFileMapper cloudFileMapper;
 
-    public FileController(CloudFileService cloudFileService, AuthService authService) {
+    public FileController(CloudFileService cloudFileService,
+                          AuthService authService,
+                          CloudFileMapper cloudFileMapper) {
         this.cloudFileService = cloudFileService;
         this.authService = authService;
+        this.cloudFileMapper = cloudFileMapper;
     }
 
     @GetMapping("/list")
@@ -29,7 +36,11 @@ public class FileController {
             @RequestParam(defaultValue = "10") int limit) {
 
         authService.getUserByToken(authToken);
-        List<CloudFileDto> files = cloudFileService.getFiles(limit);
+
+        List<CloudFileDto> files = cloudFileService.getFiles(limit).stream()
+                .map(cloudFileMapper::toDto)
+                .toList();
+
         return ResponseEntity.ok(files);
     }
 
@@ -40,12 +51,12 @@ public class FileController {
             @RequestParam("file") MultipartFile file) {
         try {
             var user = authService.getUserByToken(authToken);
-            cloudFileService.uploadFile(user, file, filename);
-            return ResponseEntity.ok(Map.of("message", "File uploaded successfully"));
+            CloudFile uploadedFile = cloudFileService.uploadFile(user, file, filename);
+            return ResponseEntity.ok(cloudFileMapper.toDto(uploadedFile));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage(), "id", 400));
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage(), 400));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("message", "File upload failed", "id", 500));
+            return ResponseEntity.internalServerError().body(new ErrorResponse("File upload failed", 500));
         }
     }
 
@@ -58,9 +69,9 @@ public class FileController {
             cloudFileService.deleteFile(user, filename);
             return ResponseEntity.ok(Map.of("message", "File deleted successfully"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage(), "id", 400));
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage(), 400));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("message", "Delete failed", "id", 500));
+            return ResponseEntity.internalServerError().body(new ErrorResponse("Delete failed", 500));
         }
     }
 
@@ -76,36 +87,26 @@ public class FileController {
                     .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
                     .body(fileBytes);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage(), "id", 400));
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage(), 400));
         } catch (IOException e) {
-            return ResponseEntity.internalServerError().body(Map.of("message", "File read error", "id", 500));
+            return ResponseEntity.internalServerError().body(new ErrorResponse("File read error", 500));
         }
     }
 
     @PutMapping("/file")
     public ResponseEntity<?> renameFile(
             @RequestHeader("auth-token") String authToken,
-            @RequestParam("filename") String oldFilename) {
+            @RequestParam("filename") String oldFilename,
+            @RequestBody RenameFileRequest request) {
 
         try {
             var user = authService.getUserByToken(authToken);
-            cloudFileService.renameFile(user, oldFilename); // новое имя генерируется внутри сервиса
-            return ResponseEntity.ok(Map.of("message", "File renamed successfully"));
-
+            CloudFile renamedFile = cloudFileService.renameFile(user, oldFilename, request.getName());
+            return ResponseEntity.ok(cloudFileMapper.toDto(renamedFile));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new ErrorResponse(e.getMessage(), 400));
-
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage(), 400));
         } catch (RuntimeException e) {
-            return ResponseEntity
-                    .status(500)
-                    .body(new ErrorResponse(e.getMessage(), 500));
-
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(500)
-                    .body(new ErrorResponse("Unexpected error", 500));
+            return ResponseEntity.status(500).body(new ErrorResponse(e.getMessage(), 500));
         }
     }
 }
