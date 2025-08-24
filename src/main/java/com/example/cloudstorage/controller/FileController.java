@@ -1,20 +1,23 @@
 package com.example.cloudstorage.controller;
 
 import com.example.cloudstorage.dto.CloudFileDto;
-import com.example.cloudstorage.dto.ErrorResponse;
 import com.example.cloudstorage.dto.RenameFileRequest;
+import com.example.cloudstorage.exception.FileStorageException;
 import com.example.cloudstorage.mapper.CloudFileMapper;
 import com.example.cloudstorage.model.CloudFile;
 import com.example.cloudstorage.service.AuthService;
 import com.example.cloudstorage.service.CloudFileService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.cloudstorage.exception.InvalidFilePathException;
+import com.example.cloudstorage.exception.FileRenameException;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 public class FileController {
 
@@ -82,10 +85,15 @@ public class FileController {
     public ResponseEntity<CloudFileDto> renameFile(
             @RequestHeader("auth-token") String authToken,
             @RequestParam("filename") String oldFilename,
-            @RequestBody RenameFileRequest request) {
+            @RequestBody RenameFileRequest request) throws InvalidFilePathException, FileRenameException {
 
+        // Получаем пользователя по токену
         var user = authService.getUserByToken(authToken);
+
+        // Переименование файла. Любые исключения будут перехвачены GlobalExceptionHandler
         CloudFile renamedFile = cloudFileService.renameFile(user, oldFilename, request.getName());
+
+        // Преобразуем в DTO и возвращаем
         return ResponseEntity.ok(cloudFileMapper.toDto(renamedFile));
     }
 }

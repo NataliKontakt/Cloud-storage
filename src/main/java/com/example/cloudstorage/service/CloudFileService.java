@@ -1,8 +1,6 @@
 package com.example.cloudstorage.service;
 
-import com.example.cloudstorage.exception.FileAlreadyExistsException;
-import com.example.cloudstorage.exception.FileNotFoundInStorageException;
-import com.example.cloudstorage.exception.FileStorageException;
+import com.example.cloudstorage.exception.*;
 import com.example.cloudstorage.model.CloudFile;
 import com.example.cloudstorage.model.User;
 import com.example.cloudstorage.repository.CloudFileRepository;
@@ -12,8 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.cloudstorage.exception.InvalidFilePathException;
+import com.example.cloudstorage.exception.FileAlreadyExistsException;
+import com.example.cloudstorage.exception.FileRenameException;
+
+
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -113,27 +118,43 @@ public class CloudFileService {
         }
     }
 
-    @Transactional
-    public CloudFile renameFile(User user, String oldFilename, String newFilename) {
-        CloudFile file = cloudFileRepository.findByOwnerAndFilename(user, oldFilename)
-                .orElseThrow(() -> {
-                    log.warn("Файл {} не найден у пользователя {}", oldFilename, user.getUsername());
-                    return new FileNotFoundInStorageException("File not found");
-                });
+    public CloudFile renameFile(User user, String oldFilename, String newFilename)
+            throws InvalidFilePathException, FileRenameException {
+        if (oldFilename == null || oldFilename.isBlank()) {
+            throw new InvalidFilePathException("Old filename is null or empty");
+        }
+        if (newFilename == null || newFilename.isBlank()) {
+            throw new InvalidFilePathException("New filename is null or empty");
+        }
 
-        Path oldPath = Paths.get(file.getFilepath());
+        // Ищем файл в базе
+        CloudFile oldFile = cloudFileRepository
+                .findByOwnerAndFilename(user, oldFilename)
+                .orElseThrow(() -> new FileNotFoundInStorageException("File not found: " + oldFilename));
+
+        // Проверяем, что filepath не null
+        if (oldFile.getFilepath() == null || oldFile.getFilepath().isBlank()) {
+            throw new InvalidFilePathException("Filepath is null or empty for file: " + oldFilename);
+        }
+
+        // Создаём новый путь на диске
+        Path oldPath = Path.of(oldFile.getFilepath());
         Path newPath = oldPath.resolveSibling(newFilename);
 
         try {
+            // Переименовываем файл на диске
             Files.move(oldPath, newPath);
-            file.setFilename(newFilename);
-            file.setFilepath(newPath.toString());
-            CloudFile renamed = cloudFileRepository.save(file);
-            log.info("Файл {} у пользователя {} переименован в {}", oldFilename, user.getUsername(), newFilename);
-            return renamed;
         } catch (IOException e) {
-            log.error("Ошибка переименования файла {} у пользователя {}", oldFilename, user.getUsername(), e);
-            throw new FileStorageException("File rename failed: " + e.getMessage(), e);
+            throw new FileRenameException("Failed to rename file " + oldFilename + " to " + newFilename, e);
         }
+
+        // Обновляем запись в базе
+        oldFile.setFilename(newFilename);
+        oldFile.setFilepath(newPath.toString());
+        CloudFile savedFile = cloudFileRepository.save(oldFile);
+
+        log.info("File renamed: {} -> {} for user {}", oldFilename, newFilename, user.getUsername());
+        return savedFile;
     }
+
 }
