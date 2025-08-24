@@ -30,7 +30,7 @@ public class CloudFileService {
     private final CloudFileRepository cloudFileRepository;
 
     @Value("${storage.location}")
-    private String storageLocation;
+    String storageLocation;
 
     public CloudFileService(CloudFileRepository cloudFileRepository) {
         this.cloudFileRepository = cloudFileRepository;
