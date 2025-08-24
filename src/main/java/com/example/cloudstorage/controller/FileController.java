@@ -35,7 +35,7 @@ public class FileController {
             @RequestHeader("auth-token") String authToken,
             @RequestParam(defaultValue = "10") int limit) {
 
-        authService.getUserByToken(authToken);
+        var user = authService.getUserByToken(authToken);
 
         List<CloudFileDto> files = cloudFileService.getFiles(limit).stream()
                 .map(cloudFileMapper::toDto)
@@ -45,68 +45,47 @@ public class FileController {
     }
 
     @PostMapping("/file")
-    public ResponseEntity<?> uploadFile(
+    public ResponseEntity<CloudFileDto> uploadFile(
             @RequestHeader("auth-token") String authToken,
             @RequestParam("filename") String filename,
             @RequestParam("file") MultipartFile file) {
-        try {
-            var user = authService.getUserByToken(authToken);
-            CloudFile uploadedFile = cloudFileService.uploadFile(user, file, filename);
-            return ResponseEntity.ok(cloudFileMapper.toDto(uploadedFile));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage(), 400));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(new ErrorResponse("File upload failed", 500));
-        }
+
+        var user = authService.getUserByToken(authToken);
+        CloudFile uploadedFile = cloudFileService.uploadFile(user, file, filename);
+        return ResponseEntity.ok(cloudFileMapper.toDto(uploadedFile));
     }
 
     @DeleteMapping("/file")
-    public ResponseEntity<?> deleteFile(
+    public ResponseEntity<Map<String, String>> deleteFile(
             @RequestHeader("auth-token") String authToken,
             @RequestParam("filename") String filename) {
-        try {
-            var user = authService.getUserByToken(authToken);
-            cloudFileService.deleteFile(user, filename);
-            return ResponseEntity.ok(Map.of("message", "File deleted successfully"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage(), 400));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(new ErrorResponse("Delete failed", 500));
-        }
+
+        var user = authService.getUserByToken(authToken);
+        cloudFileService.deleteFile(user, filename);
+        return ResponseEntity.ok(Map.of("message", "File deleted successfully"));
     }
 
     @GetMapping("/file")
-    public ResponseEntity<?> downloadFile(
+    public ResponseEntity<byte[]> downloadFile(
             @RequestHeader("auth-token") String authToken,
             @RequestParam("filename") String filename) {
-        try {
-            var user = authService.getUserByToken(authToken);
-            byte[] fileBytes = cloudFileService.downloadFile(user, filename);
 
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
-                    .body(fileBytes);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage(), 400));
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().body(new ErrorResponse("File read error", 500));
-        }
+        var user = authService.getUserByToken(authToken);
+        byte[] fileBytes = cloudFileService.downloadFile(user, filename);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
+                .body(fileBytes);
     }
 
     @PutMapping("/file")
-    public ResponseEntity<?> renameFile(
+    public ResponseEntity<CloudFileDto> renameFile(
             @RequestHeader("auth-token") String authToken,
             @RequestParam("filename") String oldFilename,
             @RequestBody RenameFileRequest request) {
 
-        try {
-            var user = authService.getUserByToken(authToken);
-            CloudFile renamedFile = cloudFileService.renameFile(user, oldFilename, request.getName());
-            return ResponseEntity.ok(cloudFileMapper.toDto(renamedFile));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage(), 400));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(500).body(new ErrorResponse(e.getMessage(), 500));
-        }
+        var user = authService.getUserByToken(authToken);
+        CloudFile renamedFile = cloudFileService.renameFile(user, oldFilename, request.getName());
+        return ResponseEntity.ok(cloudFileMapper.toDto(renamedFile));
     }
 }

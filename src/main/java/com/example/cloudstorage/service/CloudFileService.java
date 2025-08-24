@@ -1,5 +1,8 @@
 package com.example.cloudstorage.service;
 
+import com.example.cloudstorage.exception.FileAlreadyExistsException;
+import com.example.cloudstorage.exception.FileNotFoundInStorageException;
+import com.example.cloudstorage.exception.FileStorageException;
 import com.example.cloudstorage.model.CloudFile;
 import com.example.cloudstorage.model.User;
 import com.example.cloudstorage.repository.CloudFileRepository;
@@ -33,12 +36,12 @@ public class CloudFileService {
         return cloudFileRepository.findTopN(limit);
     }
 
-    public CloudFile uploadFile(User user, MultipartFile multipartFile, String filename) throws IOException {
+    public CloudFile uploadFile(User user, MultipartFile multipartFile, String filename) {
         Path filePath = null;
         try {
             // Проверка на уникальность
             if (cloudFileRepository.findByOwnerAndFilename(user, filename).isPresent()) {
-                throw new IllegalArgumentException("File with this name already exists");
+                throw new FileAlreadyExistsException("File with this name already exists");
             }
 
             // Убедимся, что папка для хранения существует
@@ -73,7 +76,7 @@ public class CloudFileService {
                     System.err.println("Rollback failed, could not delete file: " + filePath);
                 }
             }
-            throw e; // пробрасываем исходное исключение
+            throw new FileStorageException("File upload failed", e); // пробрасываем исключение
         }
     }
 
@@ -81,7 +84,7 @@ public class CloudFileService {
     @Transactional
     public void deleteFile(User user, String filename) {
         CloudFile file = cloudFileRepository.findByOwnerAndFilename(user, filename)
-                .orElseThrow(() -> new IllegalArgumentException("File not found"));
+                .orElseThrow(() -> new FileNotFoundInStorageException("File not found"));
 
         Path path = Paths.get(file.getFilepath());
 
@@ -98,21 +101,25 @@ public class CloudFileService {
                 // возвращаем запись в БД (rollback)
                 cloudFileRepository.save(file);
             }
-            throw new RuntimeException("Delete failed: " + e.getMessage(), e);
+            throw new FileStorageException("Delete failed: " + e.getMessage(), e);
         }
     }
 
-    public byte[] downloadFile(User user, String filename) throws IOException {
+    public byte[] downloadFile(User user, String filename) {
         CloudFile file = cloudFileRepository.findByOwnerAndFilename(user, filename)
-                .orElseThrow(() -> new IllegalArgumentException("File not found"));
+                .orElseThrow(() -> new FileNotFoundInStorageException("File not found"));
 
-        return Files.readAllBytes(Paths.get(file.getFilepath()));
+        try {
+            return Files.readAllBytes(Paths.get(file.getFilepath()));
+        } catch (IOException e) {
+            throw new FileStorageException("Failed to read file from storage", e);
+        }
     }
 
     @Transactional
     public CloudFile renameFile(User user, String oldFilename, String newFilename) {
         CloudFile file = cloudFileRepository.findByOwnerAndFilename(user, oldFilename)
-                .orElseThrow(() -> new IllegalArgumentException("File not found"));
+                .orElseThrow(() -> new FileNotFoundInStorageException("File not found"));
 
         Path oldPath = Paths.get(file.getFilepath());
         Path newPath = oldPath.resolveSibling(newFilename);
@@ -123,7 +130,7 @@ public class CloudFileService {
             file.setFilepath(newPath.toString());
             return cloudFileRepository.save(file);
         } catch (IOException e) {
-            throw new RuntimeException("File rename failed: " + e.getMessage(), e);
+            throw new FileStorageException("File rename failed: " + e.getMessage(), e);
         }
     }
 }

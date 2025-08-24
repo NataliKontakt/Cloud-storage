@@ -1,7 +1,9 @@
 package com.example.cloudstorage.service;
 
 import com.example.cloudstorage.dto.LoginRequest;
+import com.example.cloudstorage.exception.InvalidPasswordException;
 import com.example.cloudstorage.exception.UnauthorizedException;
+import com.example.cloudstorage.exception.UserNotFoundException;
 import com.example.cloudstorage.model.User;
 import com.example.cloudstorage.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,13 +24,11 @@ public class AuthService {
 
     public User login(LoginRequest request) {
         User user = userRepository
-
                 .findByEmail(request.getLogin())
-
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+            throw new InvalidPasswordException("Invalid password");
         }
 
         // Генерация токена
