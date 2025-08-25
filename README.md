@@ -42,4 +42,5 @@
 3. Запуск проекта командой mvn spring-boot:run
 4. Приложение поднимется на http://localhost:8080
 5. Запуск FRONT проекта npm install, npm run serve в корневой папке проекта
-6. Запуск тестов mvn clean test        
+6. Приложение поднимется на http://localhost:8081
+7. Запуск тестов mvn clean test        
